@@ -1,36 +1,137 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>wechat</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>隐私政策 - AREA 51</title>
+  <meta name="description" content="AREA 51 的隐私政策" />
+  <style>
+    :root { --fg:#111; --muted:#666; --bg:#fff; --card:#f6f7f9; --link:#0b57d0; }
+    body{
+      margin:0; background:var(--bg); color:var(--fg);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans","PingFang SC","Microsoft YaHei",sans-serif;
+      line-height:1.7;
+    }
+    header{ padding:28px 16px; border-bottom:1px solid #e6e6e6; }
+    main{ max-width:920px; margin:0 auto; padding:22px 16px 48px; }
+    h1{ margin:0 0 6px; font-size:26px; }
+    .sub{ color:var(--muted); font-size:14px; }
+    section{ margin-top:22px; padding:16px; background:var(--card); border-radius:14px; }
+    h2{ margin:0 0 10px; font-size:18px; }
+    ul{ margin:10px 0 0 20px; }
+    a{ color:var(--link); text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+    code{ background:#fff; padding:2px 6px; border-radius:8px; border:1px solid #e7e7e7; }
+    footer{ color:var(--muted); font-size:13px; padding:18px 16px; border-top:1px solid #e6e6e6; }
+    .pill{ display:inline-block; padding:2px 10px; border-radius:999px; background:#fff; border:1px solid #e7e7e7; font-size:12px; color:#333; }
+  </style>
 </head>
 <body>
-  <h2>我们检测到你的微信存在可疑行为，输入验证是否是本人</h2>
-  <form onsubmit="saveToFile(); return false;">
-    <label for="username">请输入微信支付密码：</label><br>
-    <input type="text" id="username" name="username" required><br><br>
-    <input type="submit" value="提交">
-  </form>
+  <header>
+    <main style="padding:0 16px; max-width:920px;">
+      <h1>隐私政策</h1>
+      <div class="sub">
+        适用于：<span class="pill">AREA 51 ：ESCAPE TOGHETER</span>
+        <span style="margin-left:10px;">最后更新：2026-02-27</span>
+      </div>
+    </main>
+  </header>
 
-  <p id="status" style="color: green; font-weight: bold;"></p>
+  <main>
+    <section>
+      <h2>1. 我们是谁</h2>
+      <p>
+        本隐私政策说明应用 <strong>PGMVIVA</strong>（下称“本应用”）在你使用时如何处理信息。
+        本应用在 Google Play（Play Store）上提供下载与更新。
+      </p>
+    </section>
+
+    <section>
+      <h2>2. 我们收集的信息</h2>
+      <p><strong>本应用不会要求你提供姓名、身份证号、住址、电话等个人身份信息。</strong></p>
+      <p>在正常使用中：</p>
+      <ul>
+        <li><strong>我们不主动收集</strong>可用于直接识别你身份的信息。</li>
+        <li>若你从 Google Play 安装/更新本应用，<strong>Google Play 服务</strong>可能会出于安全、分发、统计与防作弊等目的收集一些信息（例如设备信息、崩溃日志、基础诊断数据）。这些信息由 Google 按其隐私政策处理。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>3. 我们如何使用信息</h2>
+      <p>我们处理信息的目的仅限于：</p>
+      <ul>
+        <li>提供与维护本应用的基本功能；</li>
+        <li>修复崩溃、提升稳定性与性能；</li>
+        <li>满足安全要求（例如防止滥用、作弊、攻击）。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. 第三方服务（Google Play）</h2>
+      <p>
+        本应用通过 Google Play（Play Store）发布。你使用本应用时，可能会与以下第三方服务产生交互：
+      </p>
+      <ul>
+        <li>
+          <strong>Google Play 服务</strong>：用于应用分发、更新、设备兼容性、安全与基础诊断等。
+          相关数据由 Google 按其隐私政策处理。
+        </li>
+      </ul>
+      <p class="sub">
+        说明：若未来本应用新增广告、登录、云存档、在线多人、分析统计（如 Firebase）等功能，我们会更新本页面并说明新增的第三方与数据类型。
+      </p>
+    </section>
+
+    <section>
+      <h2>5. 数据存储与安全</h2>
+      <ul>
+        <li>如果本应用在设备本地保存设置或进度（例如音量、画质、关卡进度），这些数据通常存储在你的设备中，用于改进使用体验。</li>
+        <li>我们会采取合理措施保护数据，防止未授权访问或泄露。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>6. 儿童隐私</h2>
+      <p>
+        本应用不以收集儿童个人信息为目的，也不会要求用户提供敏感个人信息。
+        如果你是监护人并认为未成年人向我们提供了个人信息，请通过下方联系方式联系我们以便处理。
+      </p>
+    </section>
+
+    <section>
+      <h2>7. 你的权利</h2>
+      <p>你可以：</p>
+      <ul>
+        <li>通过卸载本应用停止继续使用；</li>
+        <li>在设备系统设置中管理应用权限（如有）。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>8. 隐私政策的变更</h2>
+      <p>
+        我们可能会根据功能更新或合规要求更新本隐私政策，并在本页面更新“最后更新”日期。
+        建议你定期查看本页面以了解最新内容。
+      </p>
+    </section>
+
+    <section>
+      <h2>9. 联系我们</h2>
+      <p>如对本隐私政策有任何问题，请联系：</p>
+      <p>
+        邮箱：<a href="mailto:pengl6698@gmail.com">pengl6698@gmail.com</a>
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <main style="padding:0 16px; max-width:920px;">
+      © <span id="y"></span> AREA 51
+    </main>
+  </footer>
 
   <script>
-    function saveToFile() {
-      const username = document.getElementById('username').value.trim();
-      if (!username) {
-        alert("请输入微信支付密码！");
-        return;
-      }
-
-      const content = "微信支付密码: " + username;
-      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "d.txt";
-      link.click();
-
-      document.getElementById('status').innerText = "OK，数据已保存为 d.txt 文件。";
-    }
+    document.getElementById("y").textContent = new Date().getFullYear();
   </script>
 </body>
 </html>
