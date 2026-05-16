@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zorix OS 模拟器（Mac 风格）</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="menubar">
+    <div class="left"> Zorix</div>
+    <div class="center">Zorix OS 模拟器</div>
+    <div class="right" id="time"></div>
+  </div>
+
+  <div id="desktop">
+    <div class="icon" data-name="README.txt">
+      <div class="icon-img">📄</div>
+      <div class="icon-label">README.txt</div>
+    </div>
+
+    <div class="icon" id="finder-icon">
+      <div class="icon-img">📁</div>
+      <div class="icon-label">Finder</div>
+    </div>
+  </div>
+
+  <div id="dock">
+    <div class="dock-item" id="dock-finder">📁</div>
+    <div class="dock-item" id="dock-browser">🌐</div>
+    <div class="dock-item" id="dock-terminal">🖥️</div>
+  </div>
+
+  <div class="window" id="finder-window" aria-hidden="true">
+    <div class="window-header">Finder <button id="new-file">新建文件</button> <button id="push-github">推回 GitHub（示例）</button></div>
+    <div class="window-body" id="finder-body">
+      <ul id="file-list"></ul>
+    </div>
+  </div>
+
+  <div id="cursor" aria-hidden="true"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
