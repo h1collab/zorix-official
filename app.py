@@ -1,10 +1,8 @@
-import os
-import uuid
+import os, uuid
 import torch
-import torchaudio
+import scipy.io.wavfile
 from flask import Flask, request, jsonify, send_from_directory
-from audiocraft.models import MusicGen
-from audiocraft.data.audio import audio_write
+from transformers import AutoProcessor, MusicgenForConditionalGeneration
 
 app = Flask(__name__)
 
@@ -14,12 +12,14 @@ os.makedirs(OUT_DIR, exist_ok=True)
 MODEL_NAME = os.environ.get("MODEL_NAME", "facebook/musicgen-small")
 API_KEY = os.environ.get("ZORIX_MUSIC_API_KEY", "")
 
-model = MusicGen.get_pretrained(MODEL_NAME)
-model.set_generation_params(duration=int(os.environ.get("DURATION", "10")))
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+processor = AutoProcessor.from_pretrained(MODEL_NAME)
+model = MusicgenForConditionalGeneration.from_pretrained(MODEL_NAME).to(device)
 
 @app.get("/")
 def home():
-    return "Zorix MusicGen running"
+    return f"Zorix MusicGen running on {device}"
 
 @app.post("/generate")
 def generate():
@@ -31,23 +31,31 @@ def generate():
     if not prompt:
         return jsonify({"error": "missing prompt"}), 400
 
-    duration = int(data.get("duration", os.environ.get("DURATION", "10")))
-    model.set_generation_params(duration=min(duration, 30))
+    max_new_tokens = int(data.get("max_new_tokens", 256))
 
-    wav = model.generate([prompt])[0].cpu()
+    inputs = processor(
+        text=[prompt],
+        padding=True,
+        return_tensors="pt"
+    ).to(device)
+
+    with torch.no_grad():
+        audio_values = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens
+        )
+
+    audio = audio_values[0, 0].detach().cpu().numpy()
+    sampling_rate = model.config.audio_encoder.sampling_rate
+
     name = f"{uuid.uuid4().hex}.wav"
-    path_no_ext = os.path.join(OUT_DIR, name[:-4])
+    path = os.path.join(OUT_DIR, name)
 
-    audio_write(
-        path_no_ext,
-        wav,
-        model.sample_rate,
-        strategy="loudness",
-        loudness_compressor=True
-    )
+    scipy.io.wavfile.write(path, rate=sampling_rate, data=audio)
 
     return jsonify({
         "prompt": prompt,
+        "device": device,
         "file": name,
         "url": f"/files/{name}"
     })
