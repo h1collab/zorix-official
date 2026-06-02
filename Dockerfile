@@ -1,23 +1,27 @@
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
-ENV MODEL_NAME=stabilityai/sdxl-turbo
 
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
     git \
+    ffmpeg \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pip install --upgrade pip
+RUN pip install uv
+
 WORKDIR /app
-
-COPY requirements.txt .
-
-RUN pip3 install --upgrade pip && \
-    pip3 install --no-cache-dir --timeout 1000 -r requirements.txt
 
 COPY app.py .
 
-CMD exec gunicorn --bind :$PORT --workers 1 --timeout 600 app:app
+RUN git clone https://github.com/ACE-Step/ACE-Step-1.5 /ace-step
+
+WORKDIR /ace-step
+
+RUN uv sync
+
+WORKDIR /app
+
+CMD python app.py
