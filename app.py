@@ -1,50 +1,59 @@
 import os
 import uuid
 import torch
-import scipy.io.wavfile
 from flask import Flask, request, jsonify, send_from_directory
-from transformers import AutoProcessor, MusicgenForConditionalGeneration
+from diffusers import AutoPipelineForText2Image
 
 app = Flask(__name__)
 
-OUT_DIR = "/tmp/music"
+OUT_DIR = "/tmp/images"
 os.makedirs(OUT_DIR, exist_ok=True)
 
-MODEL_NAME = os.environ.get("MODEL_NAME", "facebook/musicgen-small")
-API_KEY = os.environ.get("ZORIX_MUSIC_API_KEY", "")
+MODEL_NAME = os.environ.get("MODEL_NAME", "stabilityai/sdxl-turbo")
+API_KEY = os.environ.get("ZORIX_IMAGE_API_KEY", "")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
-processor = None
-model = None
+pipe = None
 
 
-def load_model():
-    global processor, model
+def load_pipe():
+    global pipe
 
-    if processor is None:
-        processor = AutoProcessor.from_pretrained(MODEL_NAME)
+    if pipe is None:
+        dtype = torch.float16 if device == "cuda" else torch.float32
 
-    if model is None:
-        model = MusicgenForConditionalGeneration.from_pretrained(MODEL_NAME)
-        model.to(device)
-        model.eval()
+        pipe = AutoPipelineForText2Image.from_pretrained(
+            MODEL_NAME,
+            torch_dtype=dtype,
+            variant="fp16" if device == "cuda" else None
+        )
 
-    return processor, model
+        pipe = pipe.to(device)
+
+        if device == "cuda":
+            pipe.enable_model_cpu_offload()
+
+    return pipe
 
 
 @app.get("/")
 def home():
-    return f"Zorix MusicGen Small ready. Device: {device}"
+    return jsonify({
+        "ok": True,
+        "service": "Zorix Image SDXL Turbo",
+        "model": MODEL_NAME,
+        "device": device,
+        "loaded": pipe is not None
+    })
 
 
 @app.get("/health")
 def health():
     return jsonify({
         "ok": True,
-        "model": MODEL_NAME,
         "device": device,
-        "loaded": model is not None
+        "model": MODEL_NAME,
+        "loaded": pipe is not None
     })
 
 
@@ -54,40 +63,37 @@ def generate():
         return jsonify({"error": "unauthorized"}), 401
 
     data = request.json or {}
-    prompt = str(data.get("prompt", "")).strip()
 
+    prompt = str(data.get("prompt", "")).strip()
     if not prompt:
         return jsonify({"error": "missing prompt"}), 400
 
-    max_new_tokens = int(data.get("max_new_tokens", 256))
-    max_new_tokens = max(64, min(max_new_tokens, 1024))
+    negative_prompt = str(data.get("negative_prompt", "")).strip()
 
-    p, m = load_model()
+    width = int(data.get("width", 1024))
+    height = int(data.get("height", 1024))
+    steps = int(data.get("steps", 4))
+    guidance_scale = float(data.get("guidance_scale", 0.0))
 
-    inputs = p(
-        text=[prompt],
-        padding=True,
-        return_tensors="pt"
-    )
+    width = max(512, min(width, 1024))
+    height = max(512, min(height, 1024))
+    steps = max(1, min(steps, 8))
 
-    inputs = {
-        k: v.to(device)
-        for k, v in inputs.items()
-    }
+    p = load_pipe()
 
-    with torch.no_grad():
-        audio_values = m.generate(
-            **inputs,
-            max_new_tokens=max_new_tokens
-        )
+    with torch.inference_mode():
+        image = p(
+            prompt=prompt,
+            negative_prompt=negative_prompt if negative_prompt else None,
+            width=width,
+            height=height,
+            num_inference_steps=steps,
+            guidance_scale=guidance_scale
+        ).images[0]
 
-    audio = audio_values[0, 0].detach().cpu().numpy()
-    sampling_rate = m.config.audio_encoder.sampling_rate
-
-    filename = f"{uuid.uuid4().hex}.wav"
+    filename = f"{uuid.uuid4().hex}.png"
     path = os.path.join(OUT_DIR, filename)
-
-    scipy.io.wavfile.write(path, rate=sampling_rate, data=audio)
+    image.save(path)
 
     return jsonify({
         "ok": True,
