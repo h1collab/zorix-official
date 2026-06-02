@@ -1,8 +1,9 @@
 flask
 gunicorn
-torch
-torchaudio
+torch==2.3.1
+torchaudio==2.3.1
 transformers
+accelerate
 scipy
 soundfile
-accelerate
+sentencepiece
