@@ -1,21 +1,27 @@
-FROM python:3.10-slim
+FROM nvidia/cuda:12.8.0-runtime-ubuntu22.04
 
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
+ENV SERVER_NAME=0.0.0.0
+ENV ACESTEP_INIT_LLM=false
+ENV ACESTEP_DOWNLOAD_SOURCE=huggingface
+ENV ACESTEP_API_KEY=zorix-secret-key
 
 RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    git \
-    curl \
+    python3.11 python3.11-venv python3-pip git curl ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY requirements.txt .
+RUN pip3 install --upgrade pip uv
 
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir --timeout 1000 -r requirements.txt
+RUN git clone https://github.com/ACE-Step/ACE-Step-1.5.git .
 
-COPY . .
+RUN uv sync
 
-CMD exec gunicorn --bind :$PORT --workers 1 --timeout 600 app:app
+CMD uv run acestep \
+  --server-name 0.0.0.0 \
+  --port ${PORT} \
+  --enable-api \
+  --api-key ${ACESTEP_API_KEY} \
+  --init_llm false
