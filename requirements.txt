@@ -1,1 +1,9 @@
-# not used
+flask
+gunicorn
+torch==2.4.1
+torchaudio==2.4.1
+transformers==4.52.4
+accelerate
+scipy
+soundfile
+sentencepiece
