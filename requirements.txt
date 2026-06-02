@@ -1,2 +1,9 @@
 flask
 gunicorn
+torch
+torchvision
+diffusers
+transformers
+accelerate
+safetensors
+pillow
