@@ -1,7 +1,6 @@
 import os
 import json
 import time
-import shutil
 import subprocess
 import urllib.parse
 import requests
@@ -12,15 +11,33 @@ app = Flask(__name__)
 ACE_PORT = int(os.environ.get("ACE_PORT", "7860"))
 ACE_URL = f"http://127.0.0.1:{ACE_PORT}"
 
-API_KEY = os.environ.get("ACESTEP_API_KEY", "zorix-secret-key")
+# ACE-Step 内部 API Key
+ACESTEP_API_KEY = os.environ.get("ACESTEP_API_KEY", "zorix-secret-key")
 
-# 强制 GPU
+# 外部访问你的 Cloud Run 的 Key
+# 改成你自己的，例如 zrx_xxxxxxxxxxxxxx
+ZORIX_PUBLIC_API_KEY = "zrx_a4d8e9f3c7b1d5e2f6a9c8b4d7e1f3a5c9b2d6e8f1a4c7"
 os.environ["ACESTEP_DEVICE"] = "cuda"
 os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("CUDA_VISIBLE_DEVICES", "0")
 os.environ["ACESTEP_OFFLOAD_TO_CPU"] = "false"
 os.environ["ACESTEP_OFFLOAD_DIT_TO_CPU"] = "false"
 
 ace_process = None
+
+
+def require_key():
+    if not ZORIX_PUBLIC_API_KEY:
+        return None
+
+    key = request.headers.get("X-API-Key", "")
+
+    if key != ZORIX_PUBLIC_API_KEY:
+        return jsonify({
+            "ok": False,
+            "error": "unauthorized"
+        }), 401
+
+    return None
 
 
 def run_cmd(cmd, timeout=10):
@@ -59,7 +76,7 @@ def start_ace():
     env = os.environ.copy()
     env["ACESTEP_API_HOST"] = "0.0.0.0"
     env["ACESTEP_API_PORT"] = str(ACE_PORT)
-    env["ACESTEP_API_KEY"] = API_KEY
+    env["ACESTEP_API_KEY"] = ACESTEP_API_KEY
     env["ACESTEP_DEVICE"] = "cuda"
     env["ACESTEP_OFFLOAD_TO_CPU"] = "false"
     env["ACESTEP_OFFLOAD_DIT_TO_CPU"] = "false"
@@ -70,7 +87,7 @@ def start_ace():
             "--server-name", "0.0.0.0",
             "--port", str(ACE_PORT),
             "--enable-api",
-            "--api-key", API_KEY,
+            "--api-key", ACESTEP_API_KEY,
             "--init_llm", "false"
         ],
         cwd="/ace-step",
@@ -79,13 +96,14 @@ def start_ace():
 
 
 def wait_ace(timeout_sec=360):
+    start_ace()
     start = time.time()
 
     while time.time() - start < timeout_sec:
         try:
             r = requests.get(
                 f"{ACE_URL}/health",
-                headers={"Authorization": f"Bearer {API_KEY}"},
+                headers={"Authorization": f"Bearer {ACESTEP_API_KEY}"},
                 timeout=5
             )
             if r.status_code < 500:
@@ -102,7 +120,7 @@ def ace_post(path, payload, timeout=3600):
     return requests.post(
         f"{ACE_URL}{path}",
         headers={
-            "Authorization": f"Bearer {API_KEY}",
+            "Authorization": f"Bearer {ACESTEP_API_KEY}",
             "Content-Type": "application/json"
         },
         json=payload,
@@ -148,25 +166,23 @@ def extract_audio_path(query_json):
         except Exception:
             return None, query_json
 
+    file_url = None
+
     if isinstance(result, list) and result:
         first = result[0]
         file_url = first.get("file") or first.get("audio") or first.get("url")
     elif isinstance(result, dict):
         file_url = result.get("file") or result.get("audio") or result.get("url")
-    else:
-        file_url = None
 
     if not file_url:
         return None, query_json
 
-    # file_url 可能是 /v1/audio?path=...
     if file_url.startswith("/v1/audio"):
         parsed = urllib.parse.urlparse(file_url)
         qs = urllib.parse.parse_qs(parsed.query)
         path = qs.get("path", [None])[0]
         return path, query_json
 
-    # 也可能直接就是本地 path
     return file_url, query_json
 
 
@@ -178,18 +194,23 @@ def home():
         "service": "Zorix ACE-Step Direct MP3",
         "ace_url": ACE_URL,
         "gpu_required": True,
-        "gpu_ok": gpu_ok()
+        "gpu_ok": gpu_ok(),
+        "protected": ZORIX_PUBLIC_API_KEY != ""
     })
 
 
 @app.get("/health")
 def health():
+    auth = require_key()
+    if auth:
+        return auth
+
     start_ace()
 
     try:
         r = requests.get(
             f"{ACE_URL}/health",
-            headers={"Authorization": f"Bearer {API_KEY}"},
+            headers={"Authorization": f"Bearer {ACESTEP_API_KEY}"},
             timeout=5
         )
         return jsonify({
@@ -209,6 +230,10 @@ def health():
 
 @app.post("/generate")
 def generate():
+    auth = require_key()
+    if auth:
+        return auth
+
     start_ace()
 
     if not gpu_ok():
@@ -242,7 +267,6 @@ def generate():
         "vocal_language": data.get("vocal_language", "en")
     }
 
-    # 可选参数
     for k in [
         "bpm",
         "key_scale",
@@ -287,7 +311,6 @@ def generate():
             "ace": release_json
         }), 500
 
-    # 等任务完成
     last_query = None
 
     for _ in range(360):
@@ -300,19 +323,22 @@ def generate():
         try:
             qj = q.json()
         except Exception:
-            last_query = {"raw": q.text[:2000], "status": q.status_code}
+            last_query = {
+                "raw": q.text[:2000],
+                "status": q.status_code
+            }
             time.sleep(2)
             continue
 
         last_query = qj
-        audio_path, full_result = extract_audio_path(qj)
+        audio_path, _ = extract_audio_path(qj)
 
         if audio_path:
-            # 下载 mp3
             download_url = f"{ACE_URL}/v1/audio?path={urllib.parse.quote(audio_path, safe='')}"
+
             audio_resp = requests.get(
                 download_url,
-                headers={"Authorization": f"Bearer {API_KEY}"},
+                headers={"Authorization": f"Bearer {ACESTEP_API_KEY}"},
                 stream=True,
                 timeout=600
             )
@@ -340,7 +366,6 @@ def generate():
                 download_name="zorix_music.mp3"
             )
 
-        # 失败
         try:
             arr = qj.get("data", [])
             if arr and arr[0].get("status") == 2:
@@ -365,7 +390,19 @@ def generate():
 
 @app.post("/task")
 def task():
+    auth = require_key()
+    if auth:
+        return auth
+
     start_ace()
     data = request.json or {}
+
     r = ace_post("/query_result", data, timeout=60)
-    return jsonify(r.json()), r.status_code
+
+    try:
+        return jsonify(r.json()), r.status_code
+    except Exception:
+        return jsonify({
+            "ok": False,
+            "raw": r.text[:2000]
+        }), r.status_code
